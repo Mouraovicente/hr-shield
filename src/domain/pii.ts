@@ -49,19 +49,28 @@ export function detectPii(text: string): PiiFinding[] {
 }
 
 /**
- * Substitui toda PII detectada em `text` por "***".
+ * Substitui apenas as ocorrencias informadas em `findings` por "***".
+ * Usado pelo outputGuard para mascarar somente PII de terceiros,
+ * preservando os dados do proprio usuario na resposta.
  */
-export function maskPii(text: string): string {
-  const findings = detectPii(text);
+export function maskFindings(text: string, findings: readonly PiiFinding[]): string {
   if (findings.length === 0) return text;
 
+  const ordered = [...findings].sort((a, b) => a.index - b.index);
   let result = "";
   let cursor = 0;
-  for (const finding of findings) {
+  for (const finding of ordered) {
     result += text.slice(cursor, finding.index);
     result += "***";
     cursor = finding.index + finding.value.length;
   }
   result += text.slice(cursor);
   return result;
+}
+
+/**
+ * Substitui toda PII detectada em `text` por "***".
+ */
+export function maskPii(text: string): string {
+  return maskFindings(text, detectPii(text));
 }
