@@ -1,3 +1,6 @@
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { openDb, seedEmployees } from "../../src/infrastructure/db.js";
 import { createSqliteEmployeeRepository } from "../../src/infrastructure/employee-repo.js";
@@ -33,5 +36,20 @@ describe("infrastructure/db (seed de RH ficticio)", () => {
     const repo = createSqliteEmployeeRepository(db);
     expect(repo.getById("emp-001")).toBeDefined();
     expect(repo.getById("emp-999")).toBeUndefined();
+  });
+
+  it("cria o diretorio pai do arquivo de banco quando ele ainda nao existe", () => {
+    const tmpRoot = mkdtempSync(path.join(tmpdir(), "hr-shield-db-test-"));
+    const nestedDbPath = path.join(tmpRoot, "nested", "dir", "hr-shield.sqlite");
+
+    try {
+      expect(existsSync(nestedDbPath)).toBe(false);
+      const db = openDb(nestedDbPath);
+      seedEmployees(db);
+      db.close();
+      expect(existsSync(nestedDbPath)).toBe(true);
+    } finally {
+      rmSync(tmpRoot, { recursive: true, force: true });
+    }
   });
 });

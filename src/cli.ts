@@ -81,7 +81,7 @@ async function runRepl(deps: AgentDeps, ctx: AgentContext): Promise<void> {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
-  const db = openDb(process.env.DB_PATH ?? ":memory:");
+  const db = openDb(process.env.DB_PATH ?? "./data/hr-shield.sqlite");
   seedEmployees(db);
 
   const employees = createSqliteEmployeeRepository(db);

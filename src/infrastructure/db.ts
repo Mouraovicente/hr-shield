@@ -1,3 +1,5 @@
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 import Database from "better-sqlite3";
 import type { EmployeeRecord } from "../application/ports.js";
 
@@ -12,8 +14,11 @@ import type { EmployeeRecord } from "../application/ports.js";
 
 export type SqliteDb = Database.Database;
 
-export function openDb(path: string = ":memory:"): SqliteDb {
-  const db = new Database(path);
+export function openDb(dbPath: string = ":memory:"): SqliteDb {
+  if (dbPath !== ":memory:") {
+    mkdirSync(path.dirname(dbPath), { recursive: true });
+  }
+  const db = new Database(dbPath);
   migrate(db);
   return db;
 }
