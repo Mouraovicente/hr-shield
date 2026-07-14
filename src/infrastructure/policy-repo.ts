@@ -13,12 +13,27 @@ const POLICIES: string[] = [
   "Codigo de conduta: dados pessoais de colegas (CPF, salario) sao confidenciais e nunca devem ser compartilhados fora dos canais oficiais de RH.",
 ];
 
+const MIN_KEYWORD_LENGTH = 4;
+
+/** Extrai palavras-chave relevantes (>= 4 letras) de uma pergunta em linguagem natural. */
+function extractKeywords(query: string): string[] {
+  return query
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .split(/\s+/)
+    .filter((word) => word.length >= MIN_KEYWORD_LENGTH);
+}
+
 export function createStaticPolicyRepository(): PolicyRepository {
   return {
     search(query: string): string[] {
-      const normalized = query.trim().toLowerCase();
-      if (!normalized) return [];
-      return POLICIES.filter((policy) => policy.toLowerCase().includes(normalized));
+      const keywords = extractKeywords(query);
+      if (keywords.length === 0) return [];
+
+      return POLICIES.filter((policy) => {
+        const normalizedPolicy = policy.toLowerCase();
+        return keywords.some((keyword) => normalizedPolicy.includes(keyword));
+      });
     },
   };
 }

@@ -13,4 +13,10 @@ describe("infrastructure/policy-repo", () => {
     const repo = createStaticPolicyRepository();
     expect(repo.search("assunto-completamente-inexistente-xyz")).toHaveLength(0);
   });
+
+  it("encontra politicas a partir de uma pergunta em linguagem natural (multi-palavra)", () => {
+    const repo = createStaticPolicyRepository();
+    const results = repo.search("Qual a politica de ferias?");
+    expect(results.length).toBeGreaterThan(0);
+  });
 });

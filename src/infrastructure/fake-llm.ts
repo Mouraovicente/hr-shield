@@ -147,6 +147,12 @@ export function createBenignFakeChatPort(): ChatPort {
         return { type: "tool_call", toolCall: { name: "get_own_payslip", arguments: { targetUserId } } };
       }
 
+      // Consultas de politica ("qual a politica de ferias?") tem prioridade
+      // sobre o pedido de ferias em si, para nao confundir as duas tools.
+      if (text.includes("politica") || text.includes("política") || text.includes("policy")) {
+        return { type: "tool_call", toolCall: { name: "search_policy", arguments: { query: lastUser?.content ?? "" } } };
+      }
+
       if (text.includes("ferias") || text.includes("férias") || text.includes("vacation")) {
         return {
           type: "tool_call",
@@ -155,10 +161,6 @@ export function createBenignFakeChatPort(): ChatPort {
             arguments: { targetUserId: callerUserId, startDate: "2026-08-01", endDate: "2026-08-10" },
           },
         };
-      }
-
-      if (text.includes("politica") || text.includes("política") || text.includes("policy")) {
-        return { type: "tool_call", toolCall: { name: "search_policy", arguments: { query: lastUser?.content ?? "" } } };
       }
 
       return {
