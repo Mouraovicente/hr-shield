@@ -104,23 +104,47 @@ function hasToolResult(messages: ChatMessage[]): boolean {
  * um modelo que coopera com o ataque) — serve para a demo de CLI e para
  * mostrar o caminho feliz (allow) nos testes de aplicacao.
  */
+interface FakeToolResult {
+  ok: boolean;
+  data?: unknown;
+  reason?: string;
+}
+
+function summarizeToolResult(messages: ChatMessage[]): ChatOutcome {
+  const toolMessage = [...messages].reverse().find((m) => m.role === "tool");
+  let parsed: FakeToolResult = { ok: false, reason: "unknown" };
+  try {
+    parsed = toolMessage ? (JSON.parse(toolMessage.content) as FakeToolResult) : parsed;
+  } catch {
+    parsed = { ok: false, reason: "unparseable_tool_result" };
+  }
+
+  if (parsed.ok) {
+    return { type: "final", content: `Aqui esta o que encontrei: ${JSON.stringify(parsed.data)}` };
+  }
+  return { type: "final", content: `Nao posso atender a essa solicitacao (motivo: ${parsed.reason}).` };
+}
+
 export function createBenignFakeChatPort(): ChatPort {
   return {
     send: async (messages: ChatMessage[]): Promise<ChatOutcome> => {
       if (hasToolResult(messages)) {
-        const toolMessage = [...messages].reverse().find((m) => m.role === "tool");
-        return {
-          type: "final",
-          content: `Aqui esta o resultado da sua solicitacao: ${toolMessage?.content ?? "(sem dados)"}`,
-        };
+        return summarizeToolResult(messages);
       }
 
       const lastUser = [...messages].reverse().find((m) => m.role === "user");
       const text = (lastUser?.content ?? "").toLowerCase();
       const callerUserId = extractCallerUserId(messages) ?? "unknown";
+      const mentionedId = lastUser?.content.match(/\b(?:emp|hr)-\d+\b/i)?.[0];
+
+      if (text.includes("salario") || text.includes("salário")) {
+        const targetUserId = mentionedId ?? callerUserId;
+        return { type: "tool_call", toolCall: { name: "get_employee_salary", arguments: { targetUserId } } };
+      }
 
       if (text.includes("holerite") || text.includes("payslip")) {
-        return { type: "tool_call", toolCall: { name: "get_own_payslip", arguments: { targetUserId: callerUserId } } };
+        const targetUserId = mentionedId ?? callerUserId;
+        return { type: "tool_call", toolCall: { name: "get_own_payslip", arguments: { targetUserId } } };
       }
 
       if (text.includes("ferias") || text.includes("férias") || text.includes("vacation")) {
@@ -139,7 +163,7 @@ export function createBenignFakeChatPort(): ChatPort {
 
       return {
         type: "final",
-        content: "Posso ajudar com holerite, pedido de ferias ou politicas de RH. O que voce precisa?",
+        content: "Posso ajudar com holerite, salario, pedido de ferias ou politicas de RH. O que voce precisa?",
       };
     },
   };
